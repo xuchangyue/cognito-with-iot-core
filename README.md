@@ -22,7 +22,7 @@
 
 #### 0. 创建dynamoDB table
 创建名称为iot的table，将IdentityId为主键，其他的保留默认值即可. 此table主要用来维护用户id和设备id之间的mapping关系。
-![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/create-ddb-table.png)
+![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/create-dynamodb-table.png)
 
 #### 1. 创建cognito用户池user pool
 输入user pool名称（如cognito-user-pool-for-iot），review defaults, 并根据需求做自定义修改（如可以修改necessary attributes，密码长度等），此demo均利用默认值。
@@ -203,6 +203,7 @@ python -m SimpleHTTPServer
 
 （3）进入Iot-test页面，订阅#（通配符，即订阅所有topic）。在web页面点击刚刚出现的xxxx publish的按钮，可以在console当中看到实时的消息推送，此时Iot连接并且发布消息已成功。
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/web_device_list.png)
+![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/iot-subscribe-message.png)
 
 
 ##参考链接：
