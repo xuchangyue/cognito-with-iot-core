@@ -1,4 +1,4 @@
-#Cognito Identity Pool + IoT Core 实现 Mobile 端用户对设备权限的精细化控制
+# Cognito Identity Pool + IoT Core 实现 Mobile 端用户对设备权限的精细化控制
 
 ## 场景概述
 目前，越来越多的Iot厂商会通过开发自己的APP，使得终端用户可以通过APP绑定自己的设备，检测自己设备的实时情况，并且对设备做即时的控制。在此场景下，从安全角度考虑，Mobile端的终端用户应该只能发布消息到自己的设备。用户和设备的关系可能是一对多或者多对多。在一对多的场景下，同一个user可能会有多个设备，例如设备device1和device2隶属于用户A，用户A只能发布消息到/userA/device1(or device2)/start的topic中，无权发布到/userB/xxxx的topic下；
@@ -7,8 +7,6 @@
 
 ## 架构图
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/architecture.png)
-
-
 
 通过cognito user pool，无需自己coding，即可轻松实现用户的注册、登录、注销等基本操作。Cognito Identity Pool可以与cognito user pool或是其他第三方账号(如google，facebook)做对接，利用IAM Role实现对AWS资源的精细化控制。本文同时使用cognito User Pool和cognito identity Pool，实现对Iot Core的访问管理。终端用户通过cognito user pool的用户池，获得登录token，通过此登录成功的token，可以拿到cognito Identity Pool Authorized Role的身份，使得他有权访问Iot Core。用户的登录ID和设备之间的绑定关系存储在NoSQL数据库DynamoDB当中，用户只能发布消息到自己的Iot设备。
 
@@ -23,9 +21,8 @@
 ### 第一步：资源配置
 
 #### 0. 创建dynamoDB table
-添加IdentityId为主键，其他的保留默认值即可. 此table主要用来维护用户id和设备id之间的mapping关系。
+创建名称为iot的table，将IdentityId为主键，其他的保留默认值即可. 此table主要用来维护用户id和设备id之间的mapping关系。
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/create-ddb-table.png)
-
 
 #### 1. 创建cognito用户池user pool
 输入user pool名称（如cognito-user-pool-for-iot），review defaults, 并根据需求做自定义修改（如可以修改necessary attributes，密码长度等），此demo均利用默认值。
@@ -198,9 +195,14 @@ python -m SimpleHTTPServer
 
 
 ### 验证
-进入Iot-test页面，订阅#，可以在console当中看到实时的消息推送。此时Iot验证已成功
-![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/iot-subscribe-message.png)
+（1）新建的cognito user pool是没有用户的，可以在页面验证用户注册和用户登录的过程，或者直接在cognito user pool当中手动创建新用户也可以。
+![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/sign-in.png)
 
+（2）原始dynamoDB当中没有数据，可以通过点击add a new device的按钮来模拟设备绑定的过程。这时可以输入一串字符（如iphone-15341）,点击submit按钮，等待几秒钟，在页面最下方即出现设备列表iphone-15341 publish。
+![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/register-new-device.png)
+
+（3）进入Iot-test页面，订阅#（通配符，即订阅所有topic）。在web页面点击刚刚出现的xxxx publish的按钮，可以在console当中看到实时的消息推送，此时Iot连接并且发布消息已成功。
+![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/web_device_list.png)
 
 
 ##参考链接：
