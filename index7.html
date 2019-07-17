@@ -35,13 +35,8 @@
 
 	<div class="centeredText">
 		<p id="introPara" title="About this demo">
-      This sample web page demonstrates how to use the Amazon Cognito Auth SDK for JavaScript.
-      This SDK simplifies adding sign-up, sign-in functionality in your apps.
-      With this SDK, you can use Cognito User Pools’ app integration and federation features,
-      with a customizable UI hosted by AWS to sign up and sign in users, and with built-in federation
-      for external identity providers via SAML.
-      To learn more
-      see our <a href="http://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html">Developer Guide</a>.<br>
+      通过cognito user pool，无需自己coding，即可轻松实现用户的注册、登录、注销等基本操作。Cognito Identity Pool可以与cognito user pool或是其他第三方账号(如google，facebook)做对接，利用IAM Role实现对AWS资源的精细化控制。本文同时使用cognito User Pool和cognito identity Pool，实现对Iot Core的访问管理。终端用户通过cognito user pool的用户池，获得登录token，通过此登录成功的token，可以拿到cognito Identity Pool Authorized Role的身份，使得他有权添加Iot policy并能够与Iot Core做交互。用户的登录ID和设备之间的绑定关系存储在NoSQL数据库DynamoDB当中，用户只能发布消息到自己的Iot设备。
+      如需进一步了解cognito，请点击<a href="http://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html">Cognito Developer Guide</a>.<br>
       <br>
 		</p>
 	</div>
