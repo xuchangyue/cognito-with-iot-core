@@ -1,0 +1,556 @@
+
+
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<title>Cognito with Iot Core Auth Sample</title>
+	<meta charset="UTF-8">
+	<link rel="stylesheet" href="stylesheets/styleSheetStart.css">
+	<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+	
+	<script src="amazon-cognito-auth.min.js"></script>
+	<script src="bundle.js"/></script> 
+	<script src="https://sdk.amazonaws.com/js/aws-sdk-2.485.0.min.js"></script> 
+
+</head>
+
+<body  onload="onLoad()">
+	<ul>
+	  <li><a href="https://aws.amazon.com/cognito/" target="_blank"
+           title="Go to AWS Cognito Console">Cognito Console</a></li>
+	  <li><a href="http://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html"
+           target="_blank" title="See Cognito developer docs">Docs</a></li>
+	</ul>
+
+	<h1>
+		<a href="http://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html" target="_blank">
+			<img src="img/MobileServices_AmazonCognito.png" alt="Amazon Cognito" title="Amazon Cognito"
+           style="width:144px;height:144px;"></a><br>
+		Amazon Cognito Auth Demo
+	</h1>
+
+	<div class="centeredText">
+		<p id="introPara" title="About this demo">
+	  <!--
+      This sample web page demonstrates how to use Amazon Cognito together with Iot core to achieve secure access control. 
+      It uses Cognito Auth SDK for JavaScript to help achieve sign-up, sign-in functionality in your apps. <br>
+  	  -->
+      通过cognito user pool，无需自己coding，即可轻松实现用户的注册、登录、注销等基本操作。Cognito Identity Pool可以与cognito user pool或是其他第三方账号(如google，facebook)做对接，利用IAM Role实现对AWS资源的精细化控制。本文同时使用cognito User Pool和cognito identity Pool，实现对Iot Core的访问管理。终端用户通过cognito user pool的用户池，获得登录token，通过此登录成功的token，可以拿到cognito Identity Pool Authorized Role的身份，使得他有权添加Iot policy并能够与Iot Core做交互。用户的登录ID和设备之间的绑定关系存储在NoSQL数据库DynamoDB当中，用户只能发布消息到自己的Iot设备。
+      如需进一步了解cognito，请点击<a href="http://docs.aws.amazon.com/cognito/latest/developerguide/what-is-amazon-cognito.html">Cognito Developer Guide</a>.<br>
+      <br>
+		</p>
+	</div>
+
+  <div><br></div>
+  <div>
+      <p id="statusNotAuth" title="Status">
+          Sign-In to Continue
+      </p>
+      <p id="statusAuth" title="Status">
+          You have Signed-In
+      </p>
+  </div>
+
+	<div class="tabsWell">
+		<div id="startButtons">
+			<div class="button">
+				<a class="nav-tabs" id="signInButton" href="#" title="Sign in">Sign In</a>
+			</div>
+			<div class="button">
+				<a class="nav-tabs" id="newDeviceButton" href="#" title="New Device" style="display:none">Add a new Device</a>
+			</div>
+
+			<div class="button" id="submitDiv" style="display: none">
+				<textarea id="submitTextarea"></textarea>
+				<button class="nav-tabs" id="submitLink">submit</button>
+			</div>
+
+		</div>
+
+		<div class="tab-content">
+			<div class="tab-pane" id="userdetails">
+				<p class="text-icon" title="Minimize" id="tabIcon" onclick="toggleTab('usertab','tabIcon');">_</p>
+				<br>
+				<h2 id="usertabtitle">Tokens</h2>
+				<div class="user-form" id="usertab">
+					<pre id="idtoken"> ... </pre>
+		            <pre id="acctoken"> ... </pre>
+		            <pre id="reftoken"> ... </pre>
+		         </div>
+
+			</div>
+
+			<div class="tab-pane" id="devicedetails">
+				<p class="text-icon" title="Minimize" id="deviceIcon" onclick="toggleTab('devicetab','deviceIcon');">_</p>
+				<br>
+				<h2 id="devicetabtitle">Devices</h2>
+
+				<div class="user-form" id="devicetab"> 
+					<!--<pre id="message"> ...</pre> -->
+		            <pre id="deviceTitle"> </pre>
+				</div>
+			</div>
+
+			<div class="tab-pane" id="messagedetails">
+				<p class="text-icon" title="Minimize" id="messageIcon" onclick="toggleTab('messagetab','messageIcon');">_</p>
+				<br>
+				<h2 id="messagetabtitle">Messages</h2>
+				<div class="user-form" id="messagetab"> 
+
+				</div>
+			</div>
+
+
+		</div>
+	</div>
+	<script>
+
+
+
+	// Operations when the web page is loaded.
+	function onLoad() {
+		var i, items, tabs;
+		items = document.getElementsByClassName("tab-pane");
+		for (i = 0; i < items.length; i++) {
+			items[i].style.display = 'none';
+		}
+		document.getElementById("statusNotAuth").style.display = 'block';
+		document.getElementById("statusAuth").style.display = 'none';
+		// Initiatlize CognitoAuth object
+		var auth = initCognitoSDK();
+		document.getElementById("signInButton").addEventListener("click", function() {
+			userButton(auth);
+		});
+
+		//点击绑定新设备，弹出textarea和submit button
+		document.getElementById("newDeviceButton").addEventListener("click", function() {
+			//userButton(auth);
+			document.getElementById("newDeviceButton").style.display = "none";   
+			document.getElementById("submitDiv").style.display="block";
+		});
+
+
+		var curUrl = window.location.href;
+		auth.parseCognitoWebResponse(curUrl);
+	}
+
+
+
+  // Operation when tab is closed.
+	function closeTab(tabName) {
+	  document.getElementById(tabName).style.display = 'none';
+	}
+  // Operation when tab is opened.
+  function openTab(tabName) {
+		document.getElementById(tabName).style.display = 'block';
+	}
+  // Operations about toggle tab.
+	function toggleTab(tabName,iconName) {
+		if (document.getElementById(tabName).style.display == 'none') {
+			document.getElementById(tabName).style.display = 'block';
+			document.getElementById(iconName).innerHTML = '_';
+		} else {
+			document.getElementById(tabName).style.display = 'none';
+			document.getElementById(iconName).innerHTML = '+';
+		}
+	}
+  // Operations when showing message.
+	function showMessage(msgTitle, msgText, msgDetail) {
+		//var msgTab = document.getElementById('message');
+		var messageTitle= document.createElement("pre");
+		messageTitle.setAttribute("class","messageTitle");
+		messageTitle.innerHTML = msgTitle;
+
+		var messageText= document.createElement("pre");
+		messageText.setAttribute("class","messageText");
+		messageText.innerHTML = msgText;
+
+		var messageDetail= document.createElement("pre");
+		messageDetail.setAttribute("class","messageDetail");
+		messageDetail.innerHTML = msgDetail;
+
+		document.getElementById("messagetab").appendChild(messageTitle);
+		document.getElementById("messagetab").appendChild(messageText);
+		document.getElementById("messagetab").appendChild(messageDetail);
+		$("#messagetab").append("<hr>");
+	}
+
+  	//Perform user operations.
+	function userButton(auth) {
+		var state = document.getElementById('signInButton').innerHTML;
+		if (state === "Sign Out") {
+
+			//*************************需自行修改************************//
+			document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/logout?response_type=code&client_id=<your-client-id>&logout_uri=http://localhost:8000";
+			document.getElementById("signInButton").innerHTML = "Sign In";
+			auth.signOut();
+			showSignedOut();
+
+		} else {
+			auth.getSession();
+			if (auth.getSession() == undefined){
+				//*************************需自行修改，<your-custom-domain>替换为自己的域名************************//
+				document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000";
+			}
+			
+		}
+	}
+	// Operations when signed in.
+  function showSignedIn(session) {
+  		//已经signin了，出现关联新设备的button
+  		document.getElementById("newDeviceButton").style.display='block';
+ 
+		document.getElementById("statusNotAuth").style.display = 'none';
+		document.getElementById("statusAuth").style.display = 'block';
+		document.getElementById("signInButton").innerHTML = "Sign Out";
+		var username="";
+		if (session) {
+			var idToken = session.getIdToken().getJwtToken();
+			if (idToken) {
+				//console.log("idToken");
+				var payload = idToken.split('.')[1];
+				var tokenobj = JSON.parse(atob(payload));
+				var formatted = JSON.stringify(tokenobj, undefined, 2);
+				document.getElementById('idtoken').innerHTML = formatted;
+			}
+			var accToken = session.getAccessToken().getJwtToken();
+			if (accToken) {
+				//console.log("accToken");
+				var payload = accToken.split('.')[1];
+				var tokenobj = JSON.parse(atob(payload));
+				var formatted = JSON.stringify(tokenobj, undefined, 2);
+				//console.log("username is", tokenobj.username);
+				username=tokenobj.username
+				document.getElementById('acctoken').innerHTML = formatted;
+			}
+			var refToken = session.getRefreshToken().getToken();
+			if (refToken) {
+				document.getElementById('reftoken').innerHTML = refToken.substring(1, 20);
+			}
+		}
+		openTab("userdetails");
+		return username;
+	}
+	// Operations when signed out.
+	function showSignedOut() {
+		document.getElementById("newDeviceButton").style.display='none';
+		document.getElementById("statusNotAuth").style.display = 'block';
+		document.getElementById("statusAuth").style.display = 'none';
+		document.getElementById('idtoken').innerHTML = " ... ";
+		document.getElementById('acctoken').innerHTML = " ... ";
+		document.getElementById('reftoken').innerHTML = " ... ";
+
+		closeTab("userdetails");
+		closeTab("messagedetails");
+		closeTab("devicedetails");
+	}
+  // Initialize a cognito auth object.
+
+  //Need aws-sdk.js to work
+  function attachPolicy(policyName, principal) {
+      new AWS.Iot().attachPolicy({ policyName: policyName, target: principal }, 
+      	      	function (err, data) {
+	        if (err) {
+	                console.error(err); // an error occurred
+	            }
+      });
+   }
+
+	function initCognitoSDK() {
+		AWS.config.region ='ap-northeast-1';
+		AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+    		IdentityPoolId: '<identity-provider-id>', //identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
+		});
+
+		var authData = { 
+			ClientId:'<your-client-id>', // Your APP client id here
+			AppWebDomain : '<your custom domain>', // Exclude the "https://" part. 
+			TokenScopesArray : ['openid','email'], // like ['openid','email','phone']...
+			RedirectUriSignIn : 'http://localhost:8000/',
+			RedirectUriSignOut : 'http://localhost:8000/',
+			IdentityProvider : '<identity-provider-id>',  //identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
+	        UserPoolId : '<your-pool-id>',   //user pool ID
+	        AdvancedSecurityDataCollectionFlag : false//<TODO: boolean value indicating whether you want to enable advanced security data collection>
+		};
+		var login = {};
+
+		//cognitoCredentials.clearCachedId();
+		var auth = new AmazonCognitoIdentity.CognitoAuth(authData);
+	
+		// You can also set state parameter 
+		// auth.setState(<state parameter>);  
+		auth.userhandler = {
+			 onSuccess: function (result) {
+                //alert("Sign in success");
+                //认证成功 
+                var username=showSignedIn(result);
+                //console.log("username is ",username);
+                var loginKey = 'cognito-idp.' + AWS.config.region + '.amazonaws.com/' + authData['UserPoolId'];
+                login[loginKey] = result.getIdToken().getJwtToken();
+                AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+                    IdentityPoolId: '<identity-provider-id>',//identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
+                    Logins: login
+                });
+
+                AWS.config.credentials.clearCachedId();
+
+                AWS.config.credentials.refresh((error) => {
+                    if (error) {
+                        console.error(error);
+                    } else {
+                        var principal = AWS.config.credentials.identityId;
+                        console.log("IdentityId: " + principal);
+                 
+                        attachPolicy("cognito-identity-general-policy", principal);
+
+                        //************queryFromDB************//
+				        console.log("queryFromDB");
+				            	
+						var params = {
+							  ExpressionAttributeValues: {
+								   ":v1": {
+								    	S: principal
+								    }
+							  }, 
+							  KeyConditionExpression: "IdentityId = :v1 ", 
+							  TableName: "iot"
+						 };
+
+						var ddb = new AWS.DynamoDB();
+
+						ddb.query(params, function(err, data) {
+						    if (err) {
+						        console.log("Unable to query. Error:", JSON.stringify(err, null, 2));
+						        return [];
+						    } else {
+						        console.log("Query succeeded.");
+
+						        if (data.Items[0] ==undefined){
+						        	//这个用户底下还没有绑定过设备
+						        	document.getElementById("submitLink").addEventListener("click",function(){
+
+
+						        		document.getElementById("submitDiv").style.display="none";
+										document.getElementById("newDeviceButton").style.display="block";
+
+						 
+										var params = {
+										  TableName: 'iot',
+										  Item: {
+										    'IdentityId' : {S: principal},
+										    'username' : {S: username},
+										    'device':{L:[{S:document.getElementById("submitTextarea").value}]}
+										  }
+										};
+
+										// Call DynamoDB to add the item to the table
+										ddb.putItem(params, function(err, data) {
+										  if (err) {
+										    console.log("Error", err);
+
+										  } else {
+										    console.log("Success", data);
+
+										    //ddb put succesfully，UI display
+										    var publishButtonNode = document.createElement('button');
+											publishButtonNode.innerHTML=document.getElementById("submitTextarea").value + ' publish';
+											publishButtonNode.setAttribute('class', 'publish_message');
+
+											publishButtonNode.topic =principal + "/" + document.getElementById("submitTextarea").value + "/app";
+											publishButtonNode.msg = document.getElementById("submitTextarea").value + " success";
+											//publishButtonNode.addEventListener("click", publishMessage,false);
+
+											document.getElementById('deviceTitle').appendChild(publishButtonNode);
+											$('#deviceTitle').append("<br><br>");
+
+											//IOT connection
+											connect(principal);
+										  }
+										});
+
+
+						        	},false);						        	
+						        }else{
+						        	//该用户已经绑定过设备了，此时调用update方法
+						        	var device_list =data.Items[0].device.L;
+						        	console.log("device_list_array",device_list);
+						        
+						        	//查询已有的设备并进行展示；
+							        for(i=0;i<device_list.length;i++){
+										console.log(device_list[i].S);
+									
+										var publishButtonNode = document.createElement('button');
+										publishButtonNode.innerHTML=device_list[i].S + ' publish';
+										publishButtonNode.setAttribute('class', 'publish_message');
+										var temp_topic = principal + "/" + device_list[i].S + "/app";
+										var temp_msg = device_list[i].S + " success";
+
+										publishButtonNode.topic = temp_topic;
+										publishButtonNode.msg = temp_msg;
+
+										document.getElementById('deviceTitle').appendChild(publishButtonNode);
+										$('#deviceTitle').append("<br><br>");
+
+									}
+
+									//添加新设备时，update DDB list
+									document.getElementById("submitLink").addEventListener("click",function(){
+
+										document.getElementById("submitDiv").style.display="none";
+										document.getElementById("newDeviceButton").style.display="block";
+
+						        		//直接updateItem搞定
+						        		var docClient = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});
+
+										var params = {
+										    TableName: "iot",
+										    Key: {
+										        "IdentityId": principal,
+										    },
+										UpdateExpression : "SET #attrName = list_append(#attrName, :attrValue)",
+										ExpressionAttributeNames : {
+										  "#attrName" : "device"
+										},
+										ExpressionAttributeValues : {
+										  ":attrValue" : [
+										  			document.getElementById("submitTextarea").value
+										        ]
+										},
+										ReturnValues: "UPDATED_NEW"
+										};
+										docClient.update(params, function(err, data) {
+										    if (err) {
+										        console.log(err);
+
+										        //callback(err);
+										    } else {
+										        console.log(data);
+										        var publishButtonNode = document.createElement('button');
+												publishButtonNode.innerHTML=document.getElementById("submitTextarea").value + ' publish';
+												publishButtonNode.setAttribute('class', 'publish_message');
+
+												var temp_topic =  principal + "/" + document.getElementById("submitTextarea").value + "/app";
+												publishButtonNode.topic =temp_topic;
+												var temp_msg =   document.getElementById("submitTextarea").value + " success";
+
+												publishButtonNode.msg = temp_msg;
+												//publishButtonNode.addEventListener("click", publishMessage,false);
+												
+												publishButtonNode.addEventListener("click", function(){
+
+													device.publish(temp_topic,temp_msg, { qos: 1 }, function (err) {
+									                    if (err) {
+									                        console.log("failed to publish iot message! ",temp_topic);
+									                        console.error(err);
+									                    } else {
+									                        console.log("published to TopicName: ", temp_topic);
+									                        openTab("messagedetails");
+									                        showMessage("Message Published", "Topic: "+temp_topic , "Message: "+temp_msg);
+									                    }
+									                });
+
+
+												},false);
+												
+
+												document.getElementById('deviceTitle').appendChild(publishButtonNode);
+												$('#deviceTitle').append("<br><br>");
+
+										       
+										    }
+										})
+
+
+						        	},false);
+
+						        	//connect the new device
+									connect(principal); 
+
+						        }							        	
+						    	   
+						    }
+
+						 	
+						});
+
+						//************queryFromDB************//
+
+
+                        
+                    }
+                });
+            },
+            onFailure: function (err) {
+            	console.log('error',err);
+                //alert("Error!");
+            }
+        
+		};
+		//console.log('auth',auth);
+		return auth;
+	}
+
+
+	function connect(principal) {
+			console.log('connecting..')
+			var app_device_list = [];
+
+            var clientID = principal;
+            device = AwsIot.device({
+                clientId: clientID,
+                host: '<your-iot-host>',   //example: xxxxxx.iot.ap-northeast-1.amazonaws.com
+                protocol: 'wss',
+                accessKeyId: AWS.config.credentials.accessKeyId,   
+                secretKey: AWS.config.credentials.secretAccessKey,
+                sessionToken: AWS.config.credentials.sessionToken  
+            });
+
+
+
+            device.on('connect', function () {
+                console.log("connected");
+
+                var temp_nodes= document.getElementsByClassName("publish_message");
+                for(var i=0;i<temp_nodes.length;i++) {
+                	console.log(temp_nodes[i]);
+                	temp_nodes[i].addEventListener("click", publishMessage,false);
+                }
+
+				openTab("devicedetails");
+
+            });
+
+             device.on('error', function(error) {
+             	console.log(error);
+      			alert("error!",error);
+   			});
+             
+             device.on('message', function(topic, payload) {
+    			console.log('message', topic, payload.toString());
+  			});
+			
+             
+            function publishMessage(env) {
+            //function publishMessage(device, topic, msg) {
+            	var topic = env.target.topic;
+            	var msg = env.target.msg;
+                device.publish(topic,msg, { qos: 1 }, function (err) {
+                    if (err) {
+                        console.log("failed to publish iot message! ",topic);
+                        console.error(err);
+                    } else {
+                        console.log("published to TopicName: ", topic);
+                        openTab("messagedetails");
+                        showMessage("Message Published", "Topic: "+topic , "Message: "+msg);
+                    }
+                });
+
+            }
+            
+
+       }
+
+
+	</script>
+</body>
+</html>

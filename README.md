@@ -178,7 +178,73 @@ terminal> browserify path/to/AWSIotDeviceSdk.js -o bundle.js
 
 3. 前端代码 
 在https://github.com/lab798/cognito-with-iot-core 下载前端代码
-注意：需要修改signInButton的href链接，改为自己的custom domain name
+需要修改以下内容：
+(1) 在function initCognitoSDK() 中
+
+```
+AWS.config.region ='ap-northeast-1';   //替换为自己的region-code，ap-northeast-1为东京
+    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+        IdentityPoolId: '<identity-provider-id>', //替换为自己的identity pool id
+        //example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
+    });
+
+    var authData = { 
+      ClientId:'<your-client-id>', // APP client id here, 如5smxxxc7lcetqvao6ed967sq01
+      AppWebDomain : '<your custom domain>', // 不包括 "https://" 部分. exmaple：xxx.auth.ap-northeast-1.amazoncognito.com
+      TokenScopesArray : ['openid','email'], // like ['openid','email','phone']...
+      RedirectUriSignIn : 'http://localhost:8000/',
+      RedirectUriSignOut : 'http://localhost:8000/',
+      IdentityProvider : '<identity-provider-id>',  //identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
+          UserPoolId : '<your-pool-id>',   //user pool ID,example: ap-northeast-1_410bH8K8x
+          AdvancedSecurityDataCollectionFlag : false//<TODO: boolean value indicating whether you want to enable advanced security data collection>
+    };
+
+    //在onsuccess回调函数当中
+    AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+        IdentityPoolId: '<identity-provider-id>',//identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
+        Logins: login
+    });
+```
+user pool ID在User Pools → demo-pool → General Settings → Pool ID    
+app client ID在User Pools → demo-pool → App Integration → App client settings → demo-app-client→ ID可找到    
+
+(2)如果iot policy为自己命名的，则attachPolicy("cognito-identity-general-policy", principal)第一个参数替换为自己的iot policy name   
+(3)在function connect(principal)当中
+
+```
+  device = AwsIot.device({
+      clientId: clientID,
+      host: '<your-iot-host>',   //example: xxxxxx.iot.ap-northeast-1.amazonaws.com
+      protocol: 'wss',
+      accessKeyId: AWS.config.credentials.accessKeyId,   
+      secretKey: AWS.config.credentials.secretAccessKey,
+      sessionToken: AWS.config.credentials.sessionToken  
+  });
+
+```
+
+(4)在function userButton(auth)当中
+```
+  function userButton(auth) {
+    var state = document.getElementById('signInButton').innerHTML;
+    if (state === "Sign Out") {
+
+      //*************************需自行修改，<your-custom-domain>替换为自己的域名************************//
+      document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/logout?response_type=code&client_id=<your-client-id>&logout_uri=http://localhost:8000";
+      document.getElementById("signInButton").innerHTML = "Sign In";
+      auth.signOut();
+      showSignedOut();
+
+    } else {
+      auth.getSession();
+      if (auth.getSession() == undefined){
+        //*************************需自行修改，<your-custom-domain>替换为自己的域名************************//
+        document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000";
+      }
+      
+    }
+  }
+```
 
 
 4. 在shell当中运行
@@ -192,9 +258,11 @@ python -m SimpleHTTPServer
 5. 功能
 此网页实现三个功能，一是登录，注册，是由cognito user pool来实现的；    二是设备绑定，此网页模拟了用户拿到设备之后，手输设备号完成绑定的过程，在实际APP当中，这一步通常是由扫二维码的形式来实现绑定的，因web网页版不好模拟扫码，故用手输的方式；    
 三是已有设备的显示已经消息收发。点击设备即可模拟一次消息传输的过程。
-
+直观demo效果：https://tiange-s3-web-hosting.s3.amazonaws.com/public.html  
 
 ### 验证
+ 
+
 （1）新建的cognito user pool是没有用户的，可以在页面验证用户注册和用户登录的过程，或者直接在cognito user pool当中手动创建新用户也可以。
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/sign-in.png)
 
