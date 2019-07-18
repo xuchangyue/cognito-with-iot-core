@@ -256,7 +256,8 @@ python -m SimpleHTTPServer
 注意：在点击sign in之后，因浏览器安全等级不同，有些浏览器可能会显示connecting... unable to connect websocket的error提示，这是因为页面停留在原http页面，无法自动进行证书验证，此时需要在浏览器新tab当中手动输入https://xxx（复制原本wss://xxxx后面的url）进行手动的加载证书的操作。之后再刷新原localhost:8000即可正常加载。
 
 5. 功能
-此网页实现三个功能，一是登录，注册，是由cognito user pool来实现的；    二是设备绑定，此网页模拟了用户拿到设备之后，手输设备号完成绑定的过程，在实际APP当中，这一步通常是由扫二维码的形式来实现绑定的，因web网页版不好模拟扫码，故用手输的方式；    
+此网页实现三个功能，一是登录，注册，是由cognito user pool来实现的；    
+二是设备绑定，此网页模拟了用户拿到设备之后，手输设备号完成绑定的过程，在实际APP当中，这一步通常是由扫二维码的形式来实现绑定的，因web网页版不好模拟扫码，故用手输的方式；    
 三是已有设备的显示已经消息收发。点击设备即可模拟一次消息传输的过程。
 直观demo效果：https://tiange-s3-web-hosting.s3.amazonaws.com/public.html  
 
@@ -274,7 +275,7 @@ python -m SimpleHTTPServer
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/iot-subscribe-message.png)
 
 
-##参考链接：
+## 参考链接：
 https://aws.amazon.com/cn/blogs/iot/configuring-cognito-user-pools-to-communicate-with-aws-iot-core/
 
 
