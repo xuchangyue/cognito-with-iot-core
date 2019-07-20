@@ -33,7 +33,7 @@
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/create-app-client.png)
 
 在左侧APP-Integration项目下，需要我们修改的有2个地方，一是APP client setting，修改callback URL以及scope token作用范围，二是自定义domain name（需要全region唯一）
-![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/app-client-configuration.png)
+![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/app-client-config.png)
 注意：localhost:8000请仅在测试环境中使用。
 
 记下userPoolID和app Client ID，在下一步骤中会用到。
