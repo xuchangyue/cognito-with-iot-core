@@ -515,7 +515,7 @@
 
                 var temp_nodes= document.getElementsByClassName("publish_message");
                 for(var i=0;i<temp_nodes.length;i++) {
-                	console.log(temp_nodes[i]);
+                	//console.log(temp_nodes[i]);
                 	temp_nodes[i].addEventListener("click", publishMessage,false);
                 }
 
@@ -542,7 +542,8 @@
             //function publishMessage(device, topic, msg) {
             	var topic = env.target.topic;
             	var msg = env.target.msg;
-                device.publish(topic,msg, { qos: 1 }, function (err) {
+            	device.publish(topic,msg,  function (err) {
+                //device.publish(topic,msg, { qos: 1 }, function (err) {
                     if (err) {
                         console.log("failed to publish iot message! ",topic);
                         console.error(err);

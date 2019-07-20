@@ -238,6 +238,7 @@ app client ID在User Pools → demo-pool → App Integration → App client sett
 
     } else {
       auth.getSession();
+      //*************************需自行修改，<your-custom-domain>替换为自己的域名************************//
       document.getElementById("signInButton").href="https://<your-custom-domain>.auth.<your-region-endpoint>.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000/";
       
     }
