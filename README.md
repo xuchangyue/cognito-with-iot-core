@@ -95,7 +95,7 @@ Identity pool会自动创建两个role，一种为unauthorized，即未登录仅
                 "dynamodb:GetItem",
                 "dynamodb:Query",
                 "dynamodb:PutItem",
-                "dynamodb:UpdateItem",
+                "dynamodb:UpdateItem"
             ],
             "Resource": [
                 "arn:aws:dynamodb:<your-region-code>:<your-account-id>:table/iot"
