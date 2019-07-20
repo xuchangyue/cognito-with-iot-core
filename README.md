@@ -50,8 +50,7 @@ Identity pool会自动创建两个role，一种为unauthorized，即未登录仅
 
 注解说明：   
 (1) 请将<Your-AWS-Account-ID>替换为自己的12位ID，去掉<>两个尖括号
-(2) 请将<region-code>去掉尖括号替换为自己使用的区域，如日本为ap-northeast-1，virginia为us-east-1,如使用其他region，请务必替换为自己的对应代码，完整region-code可在https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html 找到
-(3) resource完整示例为arn:aws:iot:us-west-1:123456789102:client/${cognito-identity.amazonaws.com:sub}
+(2) 请将<region-code>去掉尖括号替换为自己使用的区域，如日本为ap-northeast-1，virginia为us-east-1,如使用其他region，请务必替换为自己的对应代码，完整region-code可在https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-regions-availability-zones.html 找到. 本文使用的是日本区域ap-northeast-1做演示。 如resource完整示例为arn:aws:iot:us-west-1:123456789102:client/${cognito-identity.amazonaws.com:sub}
 ```
 
 {
@@ -99,7 +98,7 @@ Identity pool会自动创建两个role，一种为unauthorized，即未登录仅
                 "dynamodb:UpdateItem",
             ],
             "Resource": [
-                "arn:aws:dynamodb:ap-northeast-1:764444585758:table/iot"
+                "arn:aws:dynamodb:<your-region-code>:<your-account-id>:table/iot"
             ],
             "Condition": {
                 "ForAllValues:StringEquals": {
@@ -143,23 +142,24 @@ Unauth-Role
     {
       "Effect": "Allow",
       "Action": "iot:Connect",
-      "Resource": "arn:aws:iot:ap-northeast-1:764444585758:client/${cognito-identity.amazonaws.com:sub}"
+      "Resource": "arn:aws:iot:<your-region-code>:<account-id>:client/${cognito-identity.amazonaws.com:sub}"
     },
     {
       "Effect": "Allow",
       "Action": "iot:Publish",
-      "Resource": "arn:aws:iot:ap-northeast-1:764444585758:topic/${cognito-identity.amazonaws.com:sub}/*"
+      "Resource": "arn:aws:iot:<your-region-code>:<account-id>:topic/${cognito-identity.amazonaws.com:sub}/*"
     },
     {
       "Effect": "Allow",
       "Action": "iot:Subscribe",
-      "Resource": "arn:aws:iot:ap-northeast-1:764444585758:topic/${cognito-identity.amazonaws.com:sub}/*"
+      "Resource": "arn:aws:iot:<your-region-code>:<account-id>:topic/${cognito-identity.amazonaws.com:sub}/*"
     }
   ]
 }
 
 ```
 
+至此，通过cognito连接Iot并只能访问自己资源已经配置完毕。接下来，我们用一个前端界面演示效果。以下为具体执行方法，也可以直接打开https://tiange-s3-web-hosting.s3.amazonaws.com/public.html 进行效果查看。
 
 ### 第二步：前端demo代码
 
@@ -182,7 +182,7 @@ terminal> browserify path/to/AWSIotDeviceSdk.js -o bundle.js
 (1) 在function initCognitoSDK() 中
 
 ```
-AWS.config.region ='ap-northeast-1';   //替换为自己的region-code，ap-northeast-1为东京
+AWS.config.region ='<your-region-code>';   //替换为自己的region-code，ap-northeast-1为东京
     AWS.config.credentials = new AWS.CognitoIdentityCredentials({
         IdentityPoolId: '<identity-provider-id>', //替换为自己的identity pool id
         //example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
@@ -195,7 +195,7 @@ AWS.config.region ='ap-northeast-1';   //替换为自己的region-code，ap-nort
       RedirectUriSignIn : 'http://localhost:8000/',
       RedirectUriSignOut : 'http://localhost:8000/',
       IdentityProvider : '<identity-provider-id>',  //identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
-          UserPoolId : '<your-pool-id>',   //user pool ID,example: ap-northeast-1_410bH8K8x
+          UserPoolId : '<your-pool-id>',   //user pool ID,example: ap-northeast-1_410bH7K8x
           AdvancedSecurityDataCollectionFlag : false//<TODO: boolean value indicating whether you want to enable advanced security data collection>
     };
 
@@ -204,6 +204,13 @@ AWS.config.region ='ap-northeast-1';   //替换为自己的region-code，ap-nort
         IdentityPoolId: '<identity-provider-id>',//identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
         Logins: login
     });
+
+    //在onfail回调函数中
+    onFailure: function (err) {
+      console.log('error',err);
+      //alert(err);
+      window.location.href = "https://<your-custom-domain>.auth.<your-region-code>.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000";
+    }
 ```
 user pool ID在User Pools → demo-pool → General Settings → Pool ID    
 app client ID在User Pools → demo-pool → App Integration → App client settings → demo-app-client→ ID可找到    
@@ -214,7 +221,7 @@ app client ID在User Pools → demo-pool → App Integration → App client sett
 ```
   device = AwsIot.device({
       clientId: clientID,
-      host: '<your-iot-host>',   //example: xxxxxx.iot.ap-northeast-1.amazonaws.com
+      host: '<your-iot-host>',   //example: xxxxxx.iot.<your-region-code>f.amazonaws.com
       protocol: 'wss',
       accessKeyId: AWS.config.credentials.accessKeyId,   
       secretKey: AWS.config.credentials.secretAccessKey,
@@ -230,19 +237,34 @@ app client ID在User Pools → demo-pool → App Integration → App client sett
     if (state === "Sign Out") {
 
       //*************************需自行修改，<your-custom-domain>替换为自己的域名************************//
-      document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/logout?response_type=code&client_id=<your-client-id>&logout_uri=http://localhost:8000";
+      document.getElementById("signInButton").href="https://<your-custom-domain>.auth.<your-region-code>.amazoncognito.com/logout?response_type=code&client_id=<your-client-id>&logout_uri=http://localhost:8000";
       document.getElementById("signInButton").innerHTML = "Sign In";
       auth.signOut();
       showSignedOut();
 
-    } else {
-      auth.getSession();
-      if (auth.getSession() == undefined){
-        //*************************需自行修改，<your-custom-domain>替换为自己的域名************************//
-        document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000";
-      }
+    } 
       
     }
+
+```
+
+(5)在function publishMessage(env)当中，可以选择是否设置qos参数。这两种参数会在后续的实验中有不同的效果，我们先不设置qos试试看。
+```
+  function publishMessage(env) {
+    var topic = env.target.topic;
+    var msg = env.target.msg;
+    device.publish(topic,msg, function (err) {
+    //device.publish(topic,msg, { qos: 1 }, function (err) {
+          if (err) {
+              console.log("failed to publish iot message! ",topic);
+              console.error(err);
+          } else {
+              console.log("published to TopicName: ", topic);
+              openTab("messagedetails");
+              showMessage("Message Published", "Topic: "+topic , "Message: "+msg);
+          }
+      });
+
   }
 ```
 
@@ -252,18 +274,17 @@ app client ID在User Pools → demo-pool → App Integration → App client sett
 python -m SimpleHTTPServer
 ```
 
-在浏览器当中输入http://0.0.0.0:8000 进行验证。点击sign in & sign out进行验证。
+在浏览器当中输入http://0.0.0.0:8000 进行验证。建议打开浏览器的developer tools查看日志以及MQTT传输。
 注意：在点击sign in之后，因浏览器安全等级不同，有些浏览器可能会显示connecting... unable to connect websocket的error提示，这是因为页面停留在原http页面，无法自动进行证书验证，此时需要在浏览器新tab当中手动输入https://xxx（复制原本wss://xxxx后面的url）进行手动的加载证书的操作。之后再刷新原localhost:8000即可正常加载。
 
 5. 功能
 此网页实现三个功能，一是登录，注册，是由cognito user pool来实现的；    
 二是设备绑定，此网页模拟了用户拿到设备之后，手输设备号完成绑定的过程，在实际APP当中，这一步通常是由扫二维码的形式来实现绑定的，因web网页版不好模拟扫码，故用手输的方式；    
-三是已有设备的显示已经消息收发。点击设备即可模拟一次消息传输的过程。
-直观demo效果：https://tiange-s3-web-hosting.s3.amazonaws.com/public.html  
+三是消息手法。点击已有设备，即模拟一次消息传输的过程。页面还有一个button是验证发送到其他topic会出现什么情况。
+
 
 ### 验证
  
-
 （1）新建的cognito user pool是没有用户的，可以在页面验证用户注册和用户登录的过程，或者直接在cognito user pool当中手动创建新用户也可以。
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/sign-in.png)
 
@@ -273,6 +294,30 @@ python -m SimpleHTTPServer
 （3）进入Iot-test页面，订阅#（通配符，即订阅所有topic）。在web页面点击刚刚出现的xxxx publish的按钮，可以在console当中看到实时的消息推送，此时Iot连接并且发布消息已成功。
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/web_device_list.png)
 ![](https://salander.s3.cn-north-1.amazonaws.com.cn/public/cognito-with-iot-core/iot-subscribe-message.png)
+
+（4）web页面的”Demo Unauthed situation“这个按钮，是模拟当前用户如果要发送不在权限范围内的情形，这个按钮会发送到名为test的topic。这时候我们点击此button，会出现两种不同的情况：
+* 如果在publishMessage当中，不设置Qos，这时候web页面会显示发送成功，然而在Iot的console当中，会无法无法收到这条topic，实际为发送失败。
+* 如果设置{qos:1}, Iot仍然无法收到这条消息，但是web页面会不断重连尝试重新发送，根据官方解释，Iot会尝试长达一个小时的重传。 "AWS IoT will retry delivery of unacknowledged quality-of-service 1 (QoS 1) publish requests to a client for up to one hour. If AWS IoT does not receive a PUBACK message from the client after one hour, it will drop the publish requests."
+
+```
+  function publishMessage(env) {
+    var topic = env.target.topic;
+    var msg = env.target.msg;
+    //device.publish(topic,msg, function (err) {
+    device.publish(topic,msg, { qos: 1 }, function (err) {
+          if (err) {
+              console.log("failed to publish iot message! ",topic);
+              console.error(err);
+          } else {
+              console.log("published to TopicName: ", topic);
+              openTab("messagedetails");
+              showMessage("Message Published", "Topic: "+topic , "Message: "+msg);
+          }
+      });
+
+  }
+            
+```
 
 
 ## 参考链接：

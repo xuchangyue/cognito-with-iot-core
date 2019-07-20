@@ -87,7 +87,9 @@
 
 				<div class="user-form" id="devicetab"> 
 					<!--<pre id="message"> ...</pre> -->
-		            <pre id="deviceTitle"> </pre>
+		            <pre id="deviceTitle"> 
+		            	<button id="test_topic">Demo unauthed situation: try to publish to topic:test</button>
+		            </pre>
 				</div>
 			</div>
 
@@ -126,7 +128,7 @@
 		document.getElementById("newDeviceButton").addEventListener("click", function() {
 			//userButton(auth);
 			document.getElementById("newDeviceButton").style.display = "none";   
-			document.getElementById("submitDiv").style.display="block";
+			document.getElementById("submitDiv").style.display="inline-block";
 		});
 
 
@@ -181,24 +183,21 @@
 		if (state === "Sign Out") {
 
 			//*************************需自行修改************************//
-			document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/logout?response_type=code&client_id=<your-client-id>&logout_uri=http://localhost:8000";
+			document.getElementById("signInButton").href="https://<your-custom-domain>.auth.<your-region-endpoint>.amazoncognito.com/logout?response_type=code&client_id=<your-client-id>&logout_uri=http://localhost:8000";
 			document.getElementById("signInButton").innerHTML = "Sign In";
 			auth.signOut();
 			showSignedOut();
 
 		} else {
 			auth.getSession();
-			if (auth.getSession() == undefined){
-				//*************************需自行修改，<your-custom-domain>替换为自己的域名************************//
-				document.getElementById("signInButton").href="https://<your-custom-domain>.auth.ap-northeast-1.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000";
-			}
 			
 		}
 	}
 	// Operations when signed in.
   function showSignedIn(session) {
   		//已经signin了，出现关联新设备的button
-  		document.getElementById("newDeviceButton").style.display='block';
+  		document.getElementById("newDeviceButton").style.display='inline-block';
+  		$("newDeviceButton").append("<br>");
  
 		document.getElementById("statusNotAuth").style.display = 'none';
 		document.getElementById("statusAuth").style.display = 'block';
@@ -257,7 +256,7 @@
    }
 
 	function initCognitoSDK() {
-		AWS.config.region ='ap-northeast-1';
+		AWS.config.region ='<your-region-endpoint>';
 		AWS.config.credentials = new AWS.CognitoIdentityCredentials({
     		IdentityPoolId: '<identity-provider-id>', //identity provider id,example: ap-northeast-1: xxxxxxxx-xxxx-xxxx-xxxxxx
 		});
@@ -331,7 +330,8 @@
 
 
 						        		document.getElementById("submitDiv").style.display="none";
-										document.getElementById("newDeviceButton").style.display="block";
+										document.getElementById("newDeviceButton").style.display="inline-block";
+										$("newDeviceButton").append("<br>");
 
 						 
 										var params = {
@@ -397,7 +397,8 @@
 									document.getElementById("submitLink").addEventListener("click",function(){
 
 										document.getElementById("submitDiv").style.display="none";
-										document.getElementById("newDeviceButton").style.display="block";
+										document.getElementById("newDeviceButton").style.display="inline-block";
+										$("newDeviceButton").append("<br>");
 
 						        		//直接updateItem搞定
 						        		var docClient = new AWS.DynamoDB.DocumentClient({apiVersion: '2012-08-10'});
@@ -483,6 +484,7 @@
             onFailure: function (err) {
             	console.log('error',err);
                 //alert("Error!");
+                window.location.href = "https://<your-custom-domain>.auth.<your-region-endpoint>.amazoncognito.com/login?response_type=code&client_id=4ipf64uk3rfcs736473e0h7ot7&redirect_uri=http://localhost:8000/";
             }
         
 		};
@@ -515,6 +517,11 @@
                 	console.log(temp_nodes[i]);
                 	temp_nodes[i].addEventListener("click", publishMessage,false);
                 }
+
+                var testTopicNode = document.getElementById("test_topic");
+                testTopicNode.topic ="test";
+                testTopicNode.msg="test unauthed situation";
+                testTopicNode.addEventListener("click",publishMessage,false);
 
 				openTab("devicedetails");
 
