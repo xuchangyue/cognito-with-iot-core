@@ -205,12 +205,6 @@ AWS.config.region ='<your-region-code>';   //替换为自己的region-code，ap-
         Logins: login
     });
 
-    //在onfail回调函数中
-    onFailure: function (err) {
-      console.log('error',err);
-      //alert(err);
-      window.location.href = "https://<your-custom-domain>.auth.<your-region-code>.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000";
-    }
 ```
 user pool ID在User Pools → demo-pool → General Settings → Pool ID    
 app client ID在User Pools → demo-pool → App Integration → App client settings → demo-app-client→ ID可找到    
@@ -242,7 +236,11 @@ app client ID在User Pools → demo-pool → App Integration → App client sett
       auth.signOut();
       showSignedOut();
 
-    } 
+    } else {
+      auth.getSession();
+      document.getElementById("signInButton").href="https://<your-custom-domain>.auth.<your-region-endpoint>.amazoncognito.com/login?response_type=code&client_id=<your-client-id>&redirect_uri=http://localhost:8000/";
+      
+    }
       
     }
 

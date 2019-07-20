@@ -190,6 +190,7 @@
 
 		} else {
 			auth.getSession();
+			document.getElementById("signInButton").href="https://<your-custom-domain>.auth.<your-region-endpoint>.amazoncognito.com/login?response_type=code&client_id=4ipf64uk3rfcs736473e0h7ot7&redirect_uri=http://localhost:8000/";
 			
 		}
 	}
@@ -484,7 +485,7 @@
             onFailure: function (err) {
             	console.log('error',err);
                 //alert("Error!");
-                window.location.href = "https://<your-custom-domain>.auth.<your-region-endpoint>.amazoncognito.com/login?response_type=code&client_id=4ipf64uk3rfcs736473e0h7ot7&redirect_uri=http://localhost:8000/";
+                
             }
         
 		};
