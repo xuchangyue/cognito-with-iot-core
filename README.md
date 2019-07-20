@@ -159,7 +159,7 @@ Unauth-Role
 
 ```
 
-至此，通过cognito连接Iot并只能访问自己资源已经配置完毕。接下来，我们用一个前端界面演示效果。以下为具体执行方法，也可以直接打开https://tiange-s3-web-hosting.s3.amazonaws.com/public.html 进行效果查看。
+至此，通过cognito连接Iot并只能访问自己资源已经配置完毕。接下来，我们用一个前端界面演示效果。代码下载地址：https://github.com/lab798/cognito-with-iot-core
 
 ### 第二步：前端demo代码
 
@@ -177,7 +177,7 @@ terminal> browserify path/to/AWSIotDeviceSdk.js -o bundle.js
 ```
 
 3. 前端代码 
-在https://github.com/lab798/cognito-with-iot-core 下载前端代码
+在https://github.com/lab798/cognito-with-iot-core 下载代码
 需要修改以下内容：
 (1) 在function initCognitoSDK() 中
 
